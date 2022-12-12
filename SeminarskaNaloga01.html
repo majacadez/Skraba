@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+<!--Univeza v Mariboru | Fakulteta za organizacijske vede-->
+<!--Laboratorij za kibernetiko in sisteme za podporo odločanju-->
+<!--Maja Čadež CC BY-SA-->
+<html>
+
+<head>
+	<title>Seminarska Naloga - Modeliranje kompleksnih sistemov 2022/2023</title>
+	<script type="json" src="owid-covid-data.json"></script>
+</head>
+
+<body>
+	Seminarska Naloga - Modeliranje kompleksnih sistemov 2022/2023
+	<br>
+	Država: <select name="drzava" id="drzava">
+		<option value="Slovenija 2020-03-08 16 2020-05-22 1468 2078932" selected="selected">Slovenija</option>
+		<option value="NewZeland 2020-03-19 28 2020-06-09 1504 4822233">Nova Zelandija</option>
+		<option value="Cameroon 2020-03-19 13 2020-10-05 20924 26545864">Cameroon</option>
+		<option value="Kanada 2020-03-02 27 2020-07-04 107185 37742157">Kanada</option>
+		<option value="Cile 2020-03-03 10 2020-12-11 567974 19116209">Čile</option>
+		<option value="CostaRica 2020-03-11 13 2021-03-10 207832 5094114">Costa Rica</option>
+		<option value="CotedIvoire 2020-03-21 14 2020-11-08 20832 26378275">Cote d'Ivoire</option>
+		<option value="Hrvaska 2020-03-13 32 2020-05-15 2222 4105268">Hrvaška</option>
+		<option value="Kuba 2020-03-21 21 2020-06-23 2318 11326616">Kuba</option>
+		<option value="Ceska 2020-03-06 18 2020-05-04 7819 10708982">Češka</option>
+		<option value="DRC 2020-03-21 23 2020-09-21 10519 89561404">DRC</option>
+		<option value="Egipt 2020-03-08 49 2020-08-22 97237 102334403">Egipt</option>
+	</select>
+	<br>Začetek
+	<input type="date" name="Začetek" id="zacetek">
+	Konec
+	<input type="date" name="Konec" id="konec">
+	<button onclick="startGumb()">Štart</button>
+	<br>
+	<canvas id="graf-1" width="600" height="400" style="border: 1px dashed #099999"></canvas>
+	<canvas id="platno1" width="600" height="400" style="border: 1px dashed #099999">
+	<script type="text/javascript">
+		"use strict"; //omogoči delo z razredi
+
+
+		
+		class Stanje {
+			//razred Stanje
+			constructor() {
+				this.vrednost = 0; //koliko tekočine je v posodi, vrednsot stanj
+				tabelaStanj.push(this);
+			}
+			funkcijaZenačboPritokovInOdtokov() { }
+
+			preračunajVrednostObNaslednjemKoraku() {
+				//Eulerjeva diskretna numerična integracijska metoda za določitev vrednosti ob naslednjjem časovnem koraku
+				this.vrednost =
+					this.vrednost + dt * this.funkcijaZenačboPritokovInOdtokov();
+			}
+		}
+
+		class Pretok {
+			//razred za odtoke in pritoke
+			constructor() {
+				this.vrednost = 0; //koliko tekočine je v posodi, vrednsot stanj
+				tabelaPretokov.push(this);
+			}
+			enacbaPretoka() { } //tu napovemo, da bomo zapisali funkcijo, ki opredeli od česa je pretok odvisen
+
+			preracunajVrednost() {
+				this.vrednost = this.enacbaPretoka(); //vrednost pretoka določimo glede na podano enačbo pretoka
+			}
+		}
+		class PomoznaSpremenljivka {
+			//razred za pomožne spremenljivke
+			constructor() {
+				this.vrednost = 0; //koliko pomožne spremenljivke
+				tabelaPomoznihSpremenljivk.push(this);
+			}
+			enacbaPomozneSpremenljivke() { } //tu napovemo, da bomo zapisali funkcijo
+
+			preracunajVrednost() {
+				this.vrednost = this.enacbaPomozneSpremenljivke(); //vrednost pomone spremenljivke določimo glede na podano enačbo pretoka
+			}
+		}
+		var aktiven;
+		var stikaloKoracniZagon = 0;
+		var gumbStartPritisnjen = 0;
+		var iniciZastavica = 0; //ali smo model že inicializirali
+
+		var stevecSimTekov = -1;
+		var izbranaVrednost;
+		var izbranaDrzava;
+		var tabelaVrednosti;
+
+		var tabelaStanj = new Array(); //tabela s stanji
+		var tabelaPretokov = new Array();
+		var tabelaPomoznihSpremenljivk = new Array();
+
+		//***********************************************************************************************************************************************************
+		//Definicija modela - ZAČETEK
+		//***********************************************************************************************************************************************************
+		//vrstni red spremenljivk je pomemben, preračuni v tabeli morajo biti po vrsti, da jih lahko ob naslednjem koraku pravilno preračunamo
+		//Na začetku so inicializirana le stanja in tako lahko določimo le tiste spremenljivke, ki so vezane na stanja
+		//Zaporedje preraćuna je določeno s stanji, preračun pričnemo z elementi, ki so vezani na stanja
+
+		var k = 0; // diskretni korak preračuna
+		var t = 0; // v primeru, da je časovni korak dt = 1 enak k, sicer pa je odvisen od dt; če je dt = 0.5 je t = 0, 0.5, 1, 1.5,..
+		var dt = 1; // časovni korak
+		var tStop = 1000; //čas zaključka [dan]
+
+		var intenzivnostKontaktov = 0.4;
+		var infektivnost = 0.05;
+
+		var dovzetni = new Stanje(); // stanje, ki predtavlja število dovzetnih
+		var okuzeni = new Stanje(); // stanje, ki predtavlja število okuženih
+
+		var N = new Pretok(); //pretok od ovzetnih k okuženim [človek/dan]
+
+		var vsotaDovzetnihInOkuzenih = new PomoznaSpremenljivka(); //pomožna spremenljivka za vsoto dovzetnih in okuženih
+		var koncentracijaDovzetnihZaOkuzbo = new PomoznaSpremenljivka(); //pomožna spremenljivka za koncentracijo dovzetnih
+
+		//pomožna spremenljivka ~ v tem delu zapišemo defenicijo za pomožne spremenljivke
+		vsotaDovzetnihInOkuzenih.enacbaPomozneSpremenljivke = function () {
+			return dovzetni.vrednost + okuzeni.vrednost;
+		};
+		koncentracijaDovzetnihZaOkuzbo.enacbaPomozneSpremenljivke = function () {
+			return dovzetni.vrednost / vsotaDovzetnihInOkuzenih.vrednost;
+		};
+
+		//v tem delu zapipšemo definicije pretokov(pritokov in odtokov)
+		N.enacbaPretoka = function () {
+			return (
+				okuzeni.vrednost *
+				intenzivnostKontaktov *
+				infektivnost *
+				koncentracijaDovzetnihZaOkuzbo.vrednost
+			);
+		};
+
+		//v tem delu zapišemo definicije stanj
+		dovzetni.funkcijaZenačboPritokovInOdtokov = function () {
+			return -N.vrednost;
+		};
+		okuzeni.funkcijaZenačboPritokovInOdtokov = function () {
+			return N.vrednost;
+		};
+
+		//***********************************************************************************************************************************************************
+		//Definicija modela - KONEC
+		//***********************************************************************************************************************************************************
+
+		function zanka() {
+			t = t + dt; //čas povečamo za dt
+			k++;
+
+			for (var i = 0; i < tabelaStanj.length; i++) {
+				tabelaStanj[i].preračunajVrednostObNaslednjemKoraku();
+			}
+
+			for (var i = 0; i < tabelaPomoznihSpremenljivk.length; i++) {
+				//gremo po tabeli pretokokv - uporabimo zanko
+				tabelaPomoznihSpremenljivk[i].preracunajVrednost();
+			}
+
+			for (var i = 0; i < tabelaPretokov.length; i++) {
+				tabelaPretokov[i].preracunajVrednost();
+			}
+
+			graf1.dodajVrednost(okuzeni.vrednost, stevecSimTekov);
+			if (t >= tStop) {
+				clearTimeout(aktiven);
+			}
+		}
+
+		//**********
+		//** GRAF **
+		//**********
+		let graphColors = ["Red", "Green", "Blue", "Yellow", "Violet", "Pink", "Black", "Orange", "Brown", "Grey"];
+
+		class Graf {
+			constructor(idPlatna, maxGrafX, maxGrafY, naslov) {
+				// "boilerplate" koda za platno
+				this.can1 = document.getElementById(idPlatna); // v html delu poiščemo platno1; spremenljivka can1 sedaj predstavlja platno1
+				this.plat1 = this.can1.getContext("2d"); // od tu dalje delamo s spremenljivo plat1 (za izris na platnu iz id "platno1")
+
+				this.plat1.strokeStyle = "#ff0000"; // določimo barvo polnila, hex oblika #RRGGBB
+
+				this.y = new Array(); // ustvarimo novo tabelo y (polje), lahko bi zapisali tudi var y = []; (spremenljivka tipa Array)
+
+				this.maxGrafX = maxGrafX; // maksimum po abscisi
+				this.maxGrafY = maxGrafY; // maksimum po ordinati
+
+				this.naslov = naslov;
+			}
+
+			dodajVrednost(vrednost) {
+				if (this.y.length >= this.maxGrafX + 1) this.y.splice(0, 1);
+				this.y[this.y.length] = vrednost;
+
+				this.refreshGraph();
+			}
+
+			refreshGraph() {
+				// izris
+
+				// clear graph canvas
+				this.plat1.clearRect(0, 0, this.can1.width, this.can1.height);
+
+				this.drawGraph(this.y);
+
+				this.drawLabels();
+			}
+
+			drawLabels() {
+				// Y axis lable
+				this.plat1.font = "11px Arial";
+				this.plat1.fillText(this.maxGrafY, 5, 10);
+				this.plat1.fillText("0", 5, this.can1.height - 5);
+
+				// Title
+				this.plat1.fillText(this.naslov, 50, 10);
+			}
+
+			drawLineTo(x, y) {
+				this.plat1.lineTo(
+					x / (this.maxGrafX / this.can1.width),
+					this.can1.height - y * (this.can1.height / this.maxGrafY)
+				);
+			}
+
+			drawGraph(graphArr, color = "red") {
+				this.plat1.beginPath();
+
+				this.plat1.strokeStyle = color;
+
+				// for all points draw line to them
+				for (let i = 0; i < graphArr.length; i++) {
+					this.drawLineTo(i, graphArr[i]);
+				}
+
+				// end line
+				this.plat1.stroke();
+			}
+		}
+
+		class MultiGraph extends Graf {
+			constructor(idPlatna, maxXPoints, maxYValue, naslov) {
+				super(idPlatna, maxXPoints, maxYValue, naslov);
+				this.grafCount = -1;
+				this.colorArr = [];
+			}
+
+			dodajVrednost(vrednost, graphNum = 0) {
+				if (this.y[graphNum] == undefined) {
+					this.y[graphNum] = new Array();
+					this.colorArr.push(defeiniraneBarve);
+				}
+
+				if (this.y[graphNum].length >= this.maxGrafX + 1)
+					this.y[graphNum].splice(0, 1);
+				this.y[graphNum][this.y[graphNum].length] = vrednost;
+
+				this.refreshGraph();
+			}
+
+			refreshGraph() {
+				// clear graph canvas
+				this.plat1.clearRect(0, 0, this.can1.width, this.can1.height);
+
+				let tmpGraph = this;
+
+				this.y.forEach(function (arr, i) {
+					tmpGraph.drawGraph(arr, tmpGraph.colorArr[i]);
+				});
+
+				this.drawLabels();
+			}
+		}
+
+		//**************
+		//** END GRAF **
+		//**************
+
+		function startGumb() {
+			if (gumbStartPritisnjen == 0) {
+				//gumb za start še ni bil pritisnjen
+				gumbStartPritisnjen == 1;
+				stevecSimTekov++;
+				izbranaVrednost = document.getElementById("drzava");
+				izbranaDrzava = izbranaVrednost.value;
+				tabelaVrednosti = izbranaDrzava.split(' ');
+				reset();
+				start();
+			}
+		}
+
+		//funkcija za zagon modela
+		function start() {
+			if (t == 0 && iniciZastavica == 0) {
+				//če smo na začetku in inicializacija še ni bila izvedena
+				iniciZastavica = 1;
+				init(); //izvedemo inicializacijo
+			}
+			if (t >= tStop) {
+				stikaloKoracniZagon = 1;
+				clearTimeout(aktiven);
+			} else {
+				zanka(); // klic funkcije zanka
+				aktiven = setTimeout(start, 1); // po času 40 ms se izvede funkcija zanka, časovnik je v spremenljivki aktiven
+			}
+		}
+
+		function reset() {
+			k = 0;
+			t = 0;
+			dovzetni.vrednost = Number.parseInt(tabelaVrednosti[4]);
+			okuzeni.vrednost = Number.parseInt(tabelaVrednosti[2]);
+			
+			iniciZastavica = 0;
+			gumbStartPritisnjen = 0;
+			stevecSimTekov++;
+			init();
+		}
+		//***********************************************************************************************************************************************************
+		//Inicializacija modela - ZAČETEK
+		//***********************************************************************************************************************************************************
+
+		var defeiniraneBarve = "Red";
+		function init() {
+			
+			dovzetni.vrednost = Number.parseInt(tabelaVrednosti[4]);
+			okuzeni.vrednost = Number.parseInt(tabelaVrednosti[2]);
+
+			defeiniraneBarve = graphColors[stevecSimTekov % graphColors.length];
+
+			for (var i = 0; i < tabelaPomoznihSpremenljivk.length; i++) {
+				//gremo po tabeli pretokokv - uporabimo zanko
+				tabelaPomoznihSpremenljivk[i].preracunajVrednost();
+			}
+			for (var i = 0; i < tabelaPretokov.length; i++) {
+				//gremo po tabeli pretokokv - uporabimo zanko
+				tabelaPretokov[i].preracunajVrednost();
+			}
+
+			graf1.dodajVrednost(dovzetni.vrednost, 2 * stevecSimTekov);
+		}
+
+		//***********************************************************************************************************************************************************
+		//Inicializacija modela - KONEC
+		//***********************************************************************************************************************************************************
+
+		var graf1 = new MultiGraph("graf-1", 1000, 1500, "Prikaz okužb");
+
+	</script>
+</body>
+
+</html>
