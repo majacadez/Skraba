@@ -7,25 +7,24 @@
 
 <head>
 	<title>Seminarska Naloga - Modeliranje kompleksnih sistemov 2022/2023</title>
-	<script type="json" src="owid-covid-data.json"></script>
 </head>
 
 <body>
 	Seminarska Naloga - Modeliranje kompleksnih sistemov 2022/2023
 	<br>
 	Država: <select name="drzava" id="drzava">
-		<option value="Slovenija 2020-03-08 16 2020-05-22 1468 2078932" selected="selected">Slovenija</option>
-		<option value="NewZeland 2020-03-19 28 2020-06-09 1504 4822233">Nova Zelandija</option>
-		<option value="Cameroon 2020-03-19 13 2020-10-05 20924 26545864">Cameroon</option>
-		<option value="Kanada 2020-03-02 27 2020-07-04 107185 37742157">Kanada</option>
-		<option value="Cile 2020-03-03 10 2020-12-11 567974 19116209">Čile</option>
-		<option value="CostaRica 2020-03-11 13 2021-03-10 207832 5094114">Costa Rica</option>
-		<option value="CotedIvoire 2020-03-21 14 2020-11-08 20832 26378275">Cote d'Ivoire</option>
-		<option value="Hrvaska 2020-03-13 32 2020-05-15 2222 4105268">Hrvaška</option>
-		<option value="Kuba 2020-03-21 21 2020-06-23 2318 11326616">Kuba</option>
-		<option value="Ceska 2020-03-06 18 2020-05-04 7819 10708982">Češka</option>
-		<option value="DRC 2020-03-21 23 2020-09-21 10519 89561404">DRC</option>
-		<option value="Egipt 2020-03-08 49 2020-08-22 97237 102334403">Egipt</option>
+		<option value="SVN 2020-03-08 16 2020-05-22 1468 2078932" selected="selected">Slovenija</option>
+		<option value="NZL 2020-03-19 28 2020-06-09 1504 4822233">Nova Zelandija</option>
+		<option value="CMR 2020-03-19 13 2020-10-05 20924 26545864">Cameroon</option>
+		<option value="CAN 2020-03-02 27 2020-07-04 107185 37742157">Kanada</option>
+		<option value="CHL 2020-03-03 10 2020-12-11 567974 19116209">Čile</option>
+		<option value="CRI 2020-03-11 13 2021-03-10 207832 5094114">Costa Rica</option>
+		<option value="CIV 2020-03-21 14 2020-11-08 20832 26378275">Cote d'Ivoire</option>
+		<option value="HRV 2020-03-13 32 2020-05-15 2222 4105268">Hrvaška</option>
+		<option value="CUB 2020-03-21 21 2020-06-23 2318 11326616">Kuba</option>
+		<option value="CZE 2020-03-06 18 2020-05-04 7819 10708982">Češka</option>
+		<option value="COD 2020-03-21 23 2020-09-21 10519 89561404">DRC</option>
+		<option value="EGY 2020-03-08 49 2020-08-22 97237 102334403">Egipt</option>
 	</select>
 	<br>Začetek
 	<input type="date" name="Začetek" id="zacetek">
@@ -340,6 +339,7 @@
 			}
 
 			graf1.dodajVrednost(dovzetni.vrednost, 2 * stevecSimTekov);
+			graf1.maxGrafY = Number.parseInt(tabelaVrednosti[4]) + 100;
 		}
 
 		//***********************************************************************************************************************************************************
@@ -347,6 +347,32 @@
 		//***********************************************************************************************************************************************************
 
 		var graf1 = new MultiGraph("graf-1", 1000, 1500, "Prikaz okužb");
+
+		async function pridobiPodatke(){
+			//const response = await fetch('');
+			const response = await fetch('owid-covid-data.json');
+			return await response.json();
+		}
+
+		pridobiPodatke().then(
+			function (podatki){
+				console.log(podatki);
+				var podatkiDrzav = [[podatki.SVN.data, '2020-03-08 ', '2020-05-22', 16, 1468],
+								[podatki.NZL.data, '2020-03-19', '2020-06-09', 28, 1504],
+								[podatki.CMR.data, '2020-03-19', '2020-10-05', 13, 20924],
+								[podatki.CAN.data, '2020-03-02 27', '2020-03-02 27', 27, 107185],
+								[podatki.CHL.data, '2020-03-03', '2020-12-11', 10, 567974],
+								[podatki.CRI.data, '2020-03-11', '2021-03-10', 13, 207832],
+								[podatki.HRV.data, '2020-03-13', '2020-05-15', 32, 2222],
+								[podatki.CUB.data, '2020-03-21', '2020-06-23', 21, 2318],
+								[podatki.CZE.data, '2020-03-06', '2020-05-04', 18, 7819],
+								[podatki.COD.data, '2020-03-21', '2020-09-21', 23, 10519],
+								[podatki.EGY.data, '2020-03-08', '2020-08-22', 49, 97237],
+								[podatki.CIV.data, '2020-03-21', '2020-11-08', 14, 20832]];
+			}
+
+			
+		)
 
 	</script>
 </body>
